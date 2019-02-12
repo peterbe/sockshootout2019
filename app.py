@@ -17,19 +17,24 @@ define("debug", default=False, help="you know, when dev'ing")
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        self.render("index.html")
+        self.render("build/index.html")
 
 
 class XHRHandler(tornado.web.RequestHandler):
     def get(self):
-        count = self.get_argument("count")
-        data = {"count": int(count) - 1}
-        self.write(data)
+        if self.get_argument("ping", None):
+            self.write("pong")
+        else:
+            count = self.get_argument("count")
+            data = {"count": int(count) - 1}
+            self.write(data)
 
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
         if options.debug:
+            return True
+        if origin in {"http://localhost:3000", "https://sockshootout.local"}:
             return True
         raise NotImplementedError(origin)
 
@@ -37,9 +42,12 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
     #     self.connections.add(self)
 
     def on_message(self, message):
-        data = json.loads(message)
-        data["count"] -= 1
-        self.write_message(data)
+        if message == "ping":
+            self.write_message("pong")
+        else:
+            data = json.loads(message)
+            data["count"] -= 1
+            self.write_message(data)
 
     # def on_close(self):
     #     self.connections.remove(self)
