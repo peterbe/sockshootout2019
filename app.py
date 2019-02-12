@@ -10,6 +10,7 @@ from tornado.options import define, options
 
 define("port", default=8888, help="port to listen on")
 define("debug", default=False, help="you know, when dev'ing")
+define("pre_fork", default=False, help="forks one process per CPU")
 
 # PORT = config("PORT", default=8888)
 # DEBUG = config("DEBUG", default=False)
@@ -64,6 +65,11 @@ def make_app():
 if __name__ == "__main__":
     tornado.options.parse_command_line()
     app = make_app()
-    app.listen(options.port)
+    if options.pre_fork:
+        server = tornado.httpserver.HTTPServer(app)
+        server.bind(options.port)
+        server.start(0)  # forks one process per cpu
+    else:
+        app.listen(options.port)
     print("Starting on port", options.port, "in debug mode" if options.debug else "")
     tornado.ioloop.IOLoop.current().start()

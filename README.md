@@ -103,3 +103,28 @@ Next, create an Nginx config that looks something like this:
         access_log  /tmp/sockshootout.access.log combined;
         error_log  /tmp/sockshootout.error.log info;
     }
+
+## Note about running Tornado servers
+
+The fastest thing is to fork out one process per CPU all running under
+one port. This isn't ideal for production operations as
+[described
+here](https://www.tornadoweb.org/en/stable/guide/running.html#processes-and-ports)
+and there are other better alternatives. But it is the best way to
+squeeze out the best possible throughput when you don't have an
+exernal load server in front of Tornado. You can start the app like
+this:
+
+    python app.py --logging=error --pre-fork
+
+On my macbook that starts 8 processes and run:
+
+    hey -n 10000 -c 100 "http://localhost:8888/xhr?count=1000"
+
+    ...
+
+    Requests/sec: 6216.8589
+
+Without pre-fork, still with 100 clients doing 10,000 requests I get:
+
+    Requests/sec: 1878.6060
