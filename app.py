@@ -5,15 +5,10 @@ import tornado.web
 import tornado.websocket
 from tornado.options import define, options
 
-# from decouple import config
-
-
 define("port", default=8888, help="port to listen on")
 define("debug", default=False, help="you know, when dev'ing")
 define("pre_fork", default=False, help="forks one process per CPU")
-
-# PORT = config("PORT", default=8888)
-# DEBUG = config("DEBUG", default=False)
+define("allowed_origins", default="http://localhost:3000, https://sockshootout.local")
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -33,9 +28,7 @@ class XHRHandler(tornado.web.RequestHandler):
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
-        if options.debug:
-            return True
-        if origin in {"http://localhost:3000", "https://sockshootout.local"}:
+        if origin in self.application.settings["allowed_origins"]:
             return True
         raise NotImplementedError(origin)
 
@@ -54,22 +47,31 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
     #     self.connections.remove(self)
 
 
-def make_app():
+def make_app(allowed_origins):
     return tornado.web.Application(
         [(r"/", MainHandler), (r"/xhr", XHRHandler), (r"/ws", WebSocketHandler)],
         debug=options.debug,
         autoreload=options.debug,
+        allowed_origins=allowed_origins,
     )
 
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
-    app = make_app()
+    allowed_origins = set(
+        [x.strip() for x in options.allowed_origins.split(",") if x.strip()]
+    )
+    app = make_app(allowed_origins=allowed_origins)
     if options.pre_fork:
         server = tornado.httpserver.HTTPServer(app)
         server.bind(options.port)
         server.start(0)  # forks one process per cpu
     else:
         app.listen(options.port)
-    print("Starting on port", options.port, "in debug mode" if options.debug else "")
+    print(
+        "Starting on port",
+        options.port,
+        "in",
+        "debug" if options.debug else "production",
+    )
     tornado.ioloop.IOLoop.current().start()
