@@ -6,7 +6,7 @@ const WS_URL =
   "ws" +
   (document.location.protocol === "https:" ? "s" : "") +
   "://" +
-  document.location.host +
+  document.location.host.replace(":3000", ":8888") +
   "/ws";
 
 class App extends React.Component {
@@ -84,7 +84,14 @@ class App extends React.Component {
       iterations: this.startIterations,
       test: "xhr"
     });
-    this.setState({ runs, running: false }, this._persistRuns);
+    this.setState({ runs, running: null }, () => {
+      this._persistRuns();
+      if (this.state.test === "each") {
+        this.setState({ running: "ws" }, () => {
+          this.startWS(this.state.iterations);
+        });
+      }
+    });
   };
 
   _persistRuns = () => {
@@ -116,116 +123,165 @@ class App extends React.Component {
       iterations: this.startIterations,
       test: "ws"
     });
-    this.setState({ runs, running: false }, this._persistRuns);
+    this.setState({ runs, running: null }, this._persistRuns);
   };
 
   start = event => {
     event.preventDefault();
-    this.setState({ running: true }, () => {
-      if (this.state.test === "xhr") {
+    // this.setState({ running: true }, () => {
+    //   if (this.state.test === "xhr") {
+    //     this.startXHR(this.state.iterations);
+    //   } else if (this.state.test === "ws") {
+    //     this.startWS(this.state.iterations);
+    //   } else if (this.state.test === "each") {
+    //     this.startXHR(this.state.iterations);
+    //   } else {
+    //     throw new Error(`${this.state.test} ??`);
+    //   }
+    // });
+    if (this.state.test === "xhr") {
+      this.setState({ running: "xhr" }, () => {
         this.startXHR(this.state.iterations);
-      } else if (this.state.test === "ws") {
+      });
+    } else if (this.state.test === "ws") {
+      this.setState({ running: "ws" }, () => {
         this.startWS(this.state.iterations);
-      }
-    });
+      });
+    } else if (this.state.test === "each") {
+      this.setState({ running: "xhr" }, () => {
+        this.startXHR(this.state.iterations);
+      });
+    } else {
+      throw new Error(`${this.state.test} ??`);
+    }
+  };
+
+  clearRuns = () => {
+    this.setState({ runs: [] }, this._persistRuns);
   };
 
   render() {
     return (
-      <div className="App">
-        <header className="App-header">
-          <p>WebSockets vs. XHR 2019</p>
-        </header>
-        <form onSubmit={this.start}>
-          <div className="field is-horizontal">
-            <label className="label">Iterations</label>
-            <div className="control">
-              <input
-                type="number"
-                className="input"
-                name="iterations"
-                value={this.state.iterations}
-                onChange={e => {
-                  try {
-                    let iterations = parseInt(e.target.value, 10);
-                    if (iterations > 1000) {
-                      alert("Sorry. That's just too much");
-                      iterations = 1000;
+      <section className="section">
+        <div className="container">
+          <h1 className="title">WebSockets vs. XHR 2019</h1>
+          <form onSubmit={this.start}>
+            <div className="field is-horizontalxxx">
+              <label className="label">Iterations</label>
+              <div className="control">
+                <input
+                  type="number"
+                  style={{ width: 150 }}
+                  className="input"
+                  name="iterations"
+                  value={this.state.iterations || ""}
+                  onChange={e => {
+                    try {
+                      let iterations = parseInt(e.target.value, 10);
+                      if (!isNaN(iterations)) {
+                        this.setState({ iterations }, () => {
+                          if (this.state.iterations > 1000) {
+                            alert("Sorry. That's just too much");
+                            this.setState({ iterations: 1000 });
+                          }
+                        });
+                      }
+                    } catch (ex) {
+                      console.warn("Enter a number");
+                      return;
                     }
-                    this.setState({ iterations });
-                  } catch (ex) {
-                    console.warn("Enter a number");
-                    return;
-                  }
-                }}
-              />
+                  }}
+                />{" "}
+              </div>
             </div>
-          </div>
 
-          <div className="field is-horizontal">
-            <div className="field-label">
-              <label className="label">Already a member?</label>
-            </div>
-            <div className="field-body">
-              <div className="field is-narrow">
-                <div className="control">
-                  <label className="radio">
-                    <input
-                      type="radio"
-                      name="test"
-                      value="xhr"
-                      id="test_xhr"
-                      checked={this.state.test === "xhr"}
-                      onChange={this.changeTest}
-                    />
-                    XHR
-                  </label>
-                  <label className="radio">
-                    <input
-                      type="radio"
-                      name="test"
-                      value="ws"
-                      id="test_ws"
-                      checked={this.state.test === "ws"}
-                      onChange={this.changeTest}
-                    />
-                    WebSocket
-                  </label>
+            <div className="field is-horizontalxxx">
+              <div className="label">
+                <label className="label">Type of test</label>
+              </div>
+              <div className="control">
+                <div className="field is-narrow">
+                  <div className="control">
+                    <label className="radio">
+                      <input
+                        type="radio"
+                        name="test"
+                        value="xhr"
+                        id="test_xhr"
+                        checked={this.state.test === "xhr"}
+                        onChange={this.changeTest}
+                      />{" "}
+                      XHR
+                    </label>
+                    <label className="radio">
+                      <input
+                        type="radio"
+                        name="test"
+                        value="ws"
+                        id="test_ws"
+                        checked={this.state.test === "ws"}
+                        onChange={this.changeTest}
+                      />{" "}
+                      WebSocket
+                    </label>
+                    <label className="radio">
+                      <input
+                        type="radio"
+                        name="test"
+                        value="each"
+                        checked={this.state.test === "each"}
+                        onChange={this.changeTest}
+                      />{" "}
+                      One of each
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <p>
-            <button
-              className="button"
-              disabled={this.state.running && !this.state.connected}
-            >
-              Start!
-            </button>
-            <br />
-            {this.state.running ? <i>Running...</i> : null}
-          </p>
-          <hr />
-          <Runs runs={this.state.runs} />
-          <hr />
-          <p>
-            {this.state.connected ? (
-              <b>WebSocket is connected</b>
-            ) : (
-              <i>
-                WebSocket is <b>not</b> connected
-              </i>
-            )}
-          </p>
-        </form>
-      </div>
+            <p>
+              <button
+                className={
+                  this.state.running
+                    ? "button is-medium is-primary is-loading"
+                    : "button is-medium is-primary"
+                }
+                disabled={this.state.running || !this.state.connected}
+              >
+                Start!
+              </button>
+              <br />
+              {this.state.running ? (
+                <i>
+                  Running <b>{this.state.running}</b>...
+                </i>
+              ) : null}
+            </p>
+            <hr />
+            <Runs runs={this.state.runs} clearRuns={this.clearRuns} />
+            <hr />
+            <Connected connected={this.state.connected} />
+          </form>
+        </div>
+      </section>
     );
   }
 }
 
 export default App;
 
-function Runs({ runs }) {
+const Connected = props => (
+  <p>
+    {props.connected ? (
+      <b>WebSocket is connected</b>
+    ) : (
+      <i>
+        WebSocket is <b>not</b> connected
+      </i>
+    )}
+  </p>
+);
+
+function Runs({ runs, clearRuns }) {
   if (!runs.length) return null;
   return (
     <div>
@@ -253,6 +309,9 @@ function Runs({ runs }) {
           })}
         </tbody>
       </table>
+      <button type="button" className="button" onClick={clearRuns}>
+        Clear
+      </button>
     </div>
   );
 }
