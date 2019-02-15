@@ -28,9 +28,7 @@ class XHRHandler(tornado.web.RequestHandler):
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
-        if origin in self.application.settings["allowed_origins"]:
-            return True
-        raise NotImplementedError(origin)
+        return origin in self.application.settings["allowed_origins"]
 
     # def open(self):
     #     self.connections.add(self)
@@ -73,5 +71,7 @@ if __name__ == "__main__":
         options.port,
         "in",
         "debug" if options.debug else "production",
+        "with allowed origins",
+        allowed_origins,
     )
     tornado.ioloop.IOLoop.current().start()
