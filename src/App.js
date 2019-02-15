@@ -1,5 +1,7 @@
 import React from "react";
 import Sockette from "sockette";
+import { BarChart, Bar, Legend } from "recharts";
+
 import "./App.css";
 
 const WS_URL =
@@ -128,17 +130,6 @@ class App extends React.Component {
 
   start = event => {
     event.preventDefault();
-    // this.setState({ running: true }, () => {
-    //   if (this.state.test === "xhr") {
-    //     this.startXHR(this.state.iterations);
-    //   } else if (this.state.test === "ws") {
-    //     this.startWS(this.state.iterations);
-    //   } else if (this.state.test === "each") {
-    //     this.startXHR(this.state.iterations);
-    //   } else {
-    //     throw new Error(`${this.state.test} ??`);
-    //   }
-    // });
     if (this.state.test === "xhr") {
       this.setState({ running: "xhr" }, () => {
         this.startXHR(this.state.iterations);
@@ -164,7 +155,9 @@ class App extends React.Component {
     return (
       <section className="section">
         <div className="container">
-          <h1 className="title">WebSockets vs. XHR 2019</h1>
+          <h1 className="title">
+            WebSockets vs. XHR <span style={{ color: "#666" }}>(2019)</span>
+          </h1>
           <form onSubmit={this.start}>
             <div className="field is-horizontalxxx">
               <label className="label">Iterations</label>
@@ -285,33 +278,69 @@ function Runs({ runs, clearRuns }) {
   if (!runs.length) return null;
   return (
     <div>
-      <h3>Results</h3>
-      <table className="table">
-        <thead>
-          <tr>
-            <th colSpan={2}>Test</th>
-            <th>Iterations</th>
-            <th>Time</th>
-            <th>"Speed"</th>
-          </tr>
-        </thead>
-        <tbody>
-          {runs.map((run, i) => {
-            return (
-              <tr key={i + run.test + run.iterations}>
-                <td>{i + 1}</td>
-                <td>{run.test}</td>
-                <td>{run.iterations.toLocaleString()}</td>
-                <td>{(run.time / 1000).toFixed(3)}s</td>
-                <td>{(run.time / run.iterations).toFixed(3)} ms/iteration</td>
+      <h3 className="title is-3">Results</h3>
+      <div className="columns">
+        <div className="column">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Test</th>
+                <th>Iterations</th>
+                <th>Time</th>
+                <th>"Speed"</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {runs.map((run, i) => {
+                return (
+                  <tr key={i + run.test + run.iterations}>
+                    <td>{i + 1}</td>
+                    <td>{run.test}</td>
+                    <td>{run.iterations.toLocaleString()}</td>
+                    <td>{(run.time / 1000).toFixed(3)}s</td>
+                    <td>
+                      {(run.time / run.iterations).toFixed(2)} ms/iteration
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="column">
+          <RunsBar runs={runs} />
+        </div>
+      </div>
       <button type="button" className="button" onClick={clearRuns}>
         Clear
       </button>
+    </div>
+  );
+}
+
+function RunsBar({ runs }) {
+  const speeds = {
+    xhr: [],
+    ws: []
+  };
+  runs.forEach(run => {
+    speeds[run.test].push(run.time / run.iterations);
+  });
+  if (!speeds.xhr.length || !speeds.ws.length) return null;
+  const means = {};
+  Object.entries(speeds).forEach(([key, numbers]) => {
+    means[key] = numbers.reduce((a, b) => a + b, 0) / numbers.length;
+  });
+  const data = [means];
+  return (
+    <div>
+      <h3 className="title is-3">Average "Speed" (smaller is better)</h3>
+      <BarChart width={550} height={300} data={data}>
+        <Bar dataKey="ws" name="WebSocket" fill="#8884d8" />
+        <Bar dataKey="xhr" name="XHR" fill="#ff55ee" />
+        <Legend />
+      </BarChart>
     </div>
   );
 }
