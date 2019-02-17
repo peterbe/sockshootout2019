@@ -336,7 +336,7 @@ function RunsBar({ runs }) {
   return (
     <div>
       <h3 className="title is-3">Average "Speed" (smaller is better)</h3>
-      <BarChart width={550} height={300} data={data}>
+      <BarChart width={400} height={300} data={data}>
         <Bar dataKey="ws" name="WebSocket" fill="#8884d8" />
         <Bar dataKey="xhr" name="XHR" fill="#ff55ee" />
         <Legend />
