@@ -6,3 +6,5 @@ tornado==5.1.1 \
     --hash=sha256:8e9d728c4579682e837c92fdd98036bd5cdefa1da2aaf6acf26947e6dd0c01c5 \
     --hash=sha256:d4b3e5329f572f055b587efc57d29bd051589fb5a43ec8898c77a47ec2fa2bbb \
     --hash=sha256:e5f2585afccbff22390cddac29849df463b252b711aa2ce7c5f3f342a5b3b444
+wsaccel==0.6.2 \
+    --hash=sha256:425706acf0724d2f6bfa391ec37b4ef121d3432c956029de3cea4e101c218e0c

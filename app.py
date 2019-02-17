@@ -4,6 +4,9 @@ import tornado.ioloop
 import tornado.web
 import tornado.websocket
 from tornado.options import define, options
+import wsaccel
+
+wsaccel.patch_tornado()
 
 define("port", default=8888, help="port to listen on")
 define("debug", default=False, help="you know, when dev'ing")
