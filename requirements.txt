@@ -8,3 +8,5 @@ tornado==5.1.1 \
     --hash=sha256:e5f2585afccbff22390cddac29849df463b252b711aa2ce7c5f3f342a5b3b444
 wsaccel==0.6.2 \
     --hash=sha256:425706acf0724d2f6bfa391ec37b4ef121d3432c956029de3cea4e101c218e0c
+ujson==1.35 \
+    --hash=sha256:f66073e5506e91d204ab0c614a148d5aa938bdbf104751be66f8ad7a222f5f86

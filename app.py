@@ -1,4 +1,4 @@
-import json
+import ujson as json
 
 import tornado.ioloop
 import tornado.web
@@ -26,7 +26,7 @@ class XHRHandler(tornado.web.RequestHandler):
         else:
             count = self.get_argument("count")
             data = {"count": int(count) - 1}
-            self.write(data)
+            self.write(json.dumps(data))
 
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
