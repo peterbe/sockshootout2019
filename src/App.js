@@ -17,11 +17,13 @@ class App extends React.Component {
     iterations: 100,
     running: false,
     connected: false,
-    runs: JSON.parse(sessionStorage.getItem("runs") || "[]")
+    runs: JSON.parse(sessionStorage.getItem("runs") || "[]"),
+    submission: null,
+    serverError: null
   };
 
   componentDidMount() {
-    console.log("WebSocket URL:", WS_URL);
+    // console.log("WebSocket URL:", WS_URL);
     this.ws = new Sockette(WS_URL, {
       timeout: 5e3,
       maxAttempts: 10,
@@ -151,6 +153,30 @@ class App extends React.Component {
     this.setState({ runs: [] }, this._persistRuns);
   };
 
+  shareRuns = async () => {
+    const formData = new FormData();
+    formData.append("runs", JSON.stringify(this.state.runs));
+    if (this.state.submission) {
+      formData.append("submission", this.state.submission);
+    }
+    let response;
+    try {
+      response = await fetch("/", {
+        method: "POST",
+        body: formData
+      });
+    } catch (ex) {
+      console.warn(ex);
+      return this.setState({ serverError: ex });
+    }
+    if (response.ok) {
+      const data = await response.json();
+      this.setState({ submission: data.submission });
+    } else {
+      this.setState({ serverError: response });
+    }
+  };
+
   render() {
     return (
       <section className="section">
@@ -158,6 +184,9 @@ class App extends React.Component {
           <h1 className="title">
             WebSockets vs. XHR <span style={{ color: "#666" }}>(2019)</span>
           </h1>
+
+          <ShowServerError error={this.state.serverError} />
+
           <form onSubmit={this.start}>
             <div className="field is-horizontalxxx">
               <label className="label">Iterations</label>
@@ -250,7 +279,12 @@ class App extends React.Component {
               ) : null}
             </p>
             <hr />
-            <Runs runs={this.state.runs} clearRuns={this.clearRuns} />
+            <Runs
+              runs={this.state.runs}
+              clearRuns={this.clearRuns}
+              shareRuns={this.shareRuns}
+              submission={this.state.submission}
+            />
             <hr />
             <Connected connected={this.state.connected} />
           </form>
@@ -261,6 +295,28 @@ class App extends React.Component {
 }
 
 export default App;
+
+function ShowServerError({ error }) {
+  if (!error) return null;
+  return (
+    <article className="message is-danger">
+      <div className="message-header">Server Error</div>
+      <div className="message-body">
+        {error instanceof window.Response ? (
+          <p>
+            <b>{error.status}</b> on <b>{error.url}</b>
+            <br />
+            <small>{error.statusText}</small>
+          </p>
+        ) : (
+          <p>
+            <code>{error.toString()}</code>
+          </p>
+        )}
+      </div>
+    </article>
+  );
+}
 
 const Connected = props => (
   <p>
@@ -274,8 +330,19 @@ const Connected = props => (
   </p>
 );
 
-function Runs({ runs, clearRuns }) {
+const Runs = React.memo(({ runs, clearRuns, shareRuns, submission }) => {
   if (!runs.length) return null;
+
+  const xhrRuns = runs
+    .filter(r => r.test === "xhr")
+    .map(r => r.iterations)
+    .reduce((a, b) => a + b, 0);
+  const wsRuns = runs
+    .filter(r => r.test === "ws")
+    .map(r => r.iterations)
+    .reduce((a, b) => a + b, 0);
+  const enoughRuns = wsRuns >= 300 && xhrRuns >= 300;
+
   return (
     <div>
       <h3 className="title is-3">Results</h3>
@@ -312,12 +379,38 @@ function Runs({ runs, clearRuns }) {
           <RunsBar runs={runs} />
         </div>
       </div>
-      <button type="button" className="button" onClick={clearRuns}>
-        Clear
-      </button>
+      <p>
+        <button type="button" className="button is-small" onClick={clearRuns}>
+          Clear
+        </button>
+      </p>
+
+      {enoughRuns ? (
+        <p>
+          <button
+            type="button"
+            className="button is-primary"
+            onClick={shareRuns}
+          >
+            Share Your Results
+          </button>
+        </p>
+      ) : (
+        <p>
+          <small>
+            You need at least 300 <code>xhr</code> and 300{" "}
+            <code>websocket</code> runs to submit.
+          </small>
+        </p>
+      )}
+      {submission && (
+        <p>
+          <b>Thanks for sharing!</b>
+        </p>
+      )}
     </div>
   );
-}
+});
 
 function RunsBar({ runs }) {
   const speeds = {
