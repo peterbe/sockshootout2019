@@ -29,6 +29,8 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("build/index.html")
 
+
+class SubmissionHandler(tornado.web.RequestHandler):
     def post(self):
         runs = json.loads(self.get_argument("runs"))
 
@@ -94,7 +96,12 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
 def make_app(allowed_origins):
     return tornado.web.Application(
-        [(r"/", MainHandler), (r"/xhr", XHRHandler), (r"/ws", WebSocketHandler)],
+        [
+            (r"/", MainHandler),
+            (r"/submission", SubmissionHandler),
+            (r"/xhr", XHRHandler),
+            (r"/ws", WebSocketHandler),
+        ],
         debug=options.debug,
         autoreload=options.debug,
         allowed_origins=allowed_origins,

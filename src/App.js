@@ -161,7 +161,7 @@ class App extends React.Component {
     }
     let response;
     try {
-      response = await fetch("/", {
+      response = await fetch("/submission", {
         method: "POST",
         body: formData
       });
