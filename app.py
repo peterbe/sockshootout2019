@@ -53,13 +53,15 @@ class SubmissionHandler(tornado.web.RequestHandler):
         bulk = []
         assert isinstance(runs, list), type(runs)
         for run in runs:
+            # The 'time' in each run is in milliseconds.
+            # So convert it to
             bulk.append(
                 Run(
                     submission=submission,
                     test=run["test"],
                     iterations=run["iterations"],
-                    time=timedelta(seconds=run["time"]),
-                    speed=timedelta(seconds=run["time"] / run["iterations"]),
+                    time=timedelta(seconds=run["time"] / 1000),
+                    speed=timedelta(seconds=run["time"] / run["iterations"] / 1000),
                 )
             )
         Run.objects.bulk_create(bulk)
