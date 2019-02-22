@@ -13,13 +13,14 @@ const WS_URL =
 
 class App extends React.Component {
   state = {
-    test: "xhr",
+    test: "each3",
     iterations: 100,
     running: false,
     connected: false,
     runs: JSON.parse(sessionStorage.getItem("runs") || "[]"),
     submission: null,
-    serverError: null
+    serverError: null,
+    repeats: null
   };
 
   componentDidMount() {
@@ -32,7 +33,6 @@ class App extends React.Component {
       },
       onmessage: e => {
         const data = JSON.parse(e.data);
-        // console.log(data);
         if (data.count) {
           this.ws.json({ count: data.count });
         } else if (data.count !== undefined) {
@@ -90,7 +90,7 @@ class App extends React.Component {
     });
     this.setState({ runs, running: null }, () => {
       this._persistRuns();
-      if (this.state.test === "each") {
+      if (this.state.test === "each" || this.state.test === "each3") {
         this.setState({ running: "ws" }, () => {
           this.startWS(this.state.iterations);
         });
@@ -127,11 +127,19 @@ class App extends React.Component {
       iterations: this.startIterations,
       test: "ws"
     });
-    this.setState({ runs, running: null }, this._persistRuns);
+    if (this.state.test === "each3" && this.state.repeats > 1) {
+      this.setState(
+        { runs, running: "xhr", repeats: this.state.repeats - 1 },
+        () => {
+          this.startXHR(this.state.iterations);
+        }
+      );
+    } else {
+      this.setState({ runs, running: null }, this._persistRuns);
+    }
   };
 
-  start = event => {
-    event.preventDefault();
+  start = () => {
     if (this.state.test === "xhr") {
       this.setState({ running: "xhr" }, () => {
         this.startXHR(this.state.iterations);
@@ -142,6 +150,10 @@ class App extends React.Component {
       });
     } else if (this.state.test === "each") {
       this.setState({ running: "xhr" }, () => {
+        this.startXHR(this.state.iterations);
+      });
+    } else if (this.state.test === "each3") {
+      this.setState({ running: "xhr", repeats: 3 }, () => {
         this.startXHR(this.state.iterations);
       });
     } else {
@@ -157,7 +169,7 @@ class App extends React.Component {
     const formData = new FormData();
     formData.append("runs", JSON.stringify(this.state.runs));
     if (this.state.submission) {
-      formData.append("submission", this.state.submission);
+      formData.append("submission", this.state.submission.uuid);
     }
     let response;
     try {
@@ -187,7 +199,12 @@ class App extends React.Component {
 
           <ShowServerError error={this.state.serverError} />
 
-          <form onSubmit={this.start}>
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              this.start();
+            }}
+          >
             <div className="field is-horizontalxxx">
               <label className="label">Iterations</label>
               <div className="control">
@@ -235,6 +252,7 @@ class App extends React.Component {
                       />{" "}
                       XHR
                     </label>
+                    <br />
                     <label className="radio">
                       <input
                         type="radio"
@@ -246,6 +264,7 @@ class App extends React.Component {
                       />{" "}
                       WebSocket
                     </label>
+                    <br />
                     <label className="radio">
                       <input
                         type="radio"
@@ -255,6 +274,17 @@ class App extends React.Component {
                         onChange={this.changeTest}
                       />{" "}
                       One of each
+                    </label>
+                    <br />
+                    <label className="radio">
+                      <input
+                        type="radio"
+                        name="test"
+                        value="each3"
+                        checked={this.state.test === "each3"}
+                        onChange={this.changeTest}
+                      />{" "}
+                      One of each, 3 times
                     </label>
                   </div>
                 </div>
@@ -271,16 +301,19 @@ class App extends React.Component {
               >
                 Start!
               </button>
-              <br />
-              {this.state.running ? (
-                <i>
-                  Running <b>{this.state.running}</b>...
-                </i>
-              ) : null}
             </p>
-            <hr />
+            {this.state.running ? (
+              <p>
+                Running <b>{this.state.running}</b>...
+              </p>
+            ) : (
+              <p>&nbsp;</p>
+            )}
+
+            {this.state.runs && <hr />}
             <Runs
               runs={this.state.runs}
+              running={this.state.running}
               clearRuns={this.clearRuns}
               shareRuns={this.shareRuns}
               submission={this.state.submission}
@@ -330,87 +363,99 @@ const Connected = props => (
   </p>
 );
 
-const Runs = React.memo(({ runs, clearRuns, shareRuns, submission }) => {
-  if (!runs.length) return null;
+const Runs = React.memo(
+  ({ running, runs, clearRuns, shareRuns, submission }) => {
+    if (!runs.length) return null;
 
-  const xhrRuns = runs
-    .filter(r => r.test === "xhr")
-    .map(r => r.iterations)
-    .reduce((a, b) => a + b, 0);
-  const wsRuns = runs
-    .filter(r => r.test === "ws")
-    .map(r => r.iterations)
-    .reduce((a, b) => a + b, 0);
-  const enoughRuns = wsRuns >= 300 && xhrRuns >= 300;
+    const xhrRuns = runs
+      .filter(r => r.test === "xhr")
+      .map(r => r.iterations)
+      .reduce((a, b) => a + b, 0);
+    const wsRuns = runs
+      .filter(r => r.test === "ws")
+      .map(r => r.iterations)
+      .reduce((a, b) => a + b, 0);
+    const enoughRuns = wsRuns >= 300 && xhrRuns >= 300;
 
-  return (
-    <div>
-      <h3 className="title is-3">Results</h3>
-      <div className="columns">
-        <div className="column">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Test</th>
-                <th>Iterations</th>
-                <th>Time</th>
-                <th>"Speed"</th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((run, i) => {
-                return (
-                  <tr key={i + run.test + run.iterations}>
-                    <td>{i + 1}</td>
-                    <td>{run.test}</td>
-                    <td>{run.iterations.toLocaleString()}</td>
-                    <td>{(run.time / 1000).toFixed(3)}s</td>
-                    <td>
-                      {(run.time / run.iterations).toFixed(2)} ms/iteration
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+    return (
+      <div>
+        <h3 className="title is-3">Results</h3>
+        <div className="columns">
+          <div className="column">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Test</th>
+                  <th>Iterations</th>
+                  <th>Time</th>
+                  <th>"Speed"</th>
+                </tr>
+              </thead>
+              <tbody>
+                {runs.map((run, i) => {
+                  return (
+                    <tr key={i + run.test + run.iterations}>
+                      <td>{i + 1}</td>
+                      <td>{run.test}</td>
+                      <td>{run.iterations.toLocaleString()}</td>
+                      <td>{(run.time / 1000).toFixed(3)}s</td>
+                      <td>
+                        {(run.time / run.iterations).toFixed(2)} ms/iteration
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="column">
+            <RunsBar runs={runs} />
+          </div>
         </div>
-        <div className="column">
-          <RunsBar runs={runs} />
-        </div>
-      </div>
-      <p>
-        <button type="button" className="button is-small" onClick={clearRuns}>
-          Clear
-        </button>
-      </p>
-
-      {enoughRuns ? (
         <p>
           <button
             type="button"
-            className="button is-primary"
-            onClick={shareRuns}
+            className="button is-small"
+            onClick={clearRuns}
+            disabled={running}
           >
-            Share Your Results
+            Clear
           </button>
         </p>
-      ) : (
-        <p>
-          <small>
-            You need at least 300 <code>xhr</code> and 300{" "}
-            <code>websocket</code> runs to submit.
-          </small>
-        </p>
-      )}
-      {submission && (
-        <p>
-          <b>Thanks for sharing!</b>
-        </p>
-      )}
-    </div>
-  );
-});
+        <br />
+
+        {enoughRuns ? (
+          <p>
+            <button
+              type="button"
+              className="button is-primary"
+              onClick={shareRuns}
+              disabled={running}
+            >
+              Share Your Results
+            </button>
+          </p>
+        ) : (
+          <p>
+            <small>
+              You need at least 300 <code>xhr</code> and 300{" "}
+              <code>websocket</code> runs to submit.
+            </small>
+          </p>
+        )}
+        {submission && (
+          <p>
+            <b>Thanks for sharing!</b>
+            <br />
+            {submission.runs.count.toLocaleString()} runs with a total of{" "}
+            {submission.runs.total_iterations.toLocaleString()} iterations.
+          </p>
+        )}
+      </div>
+    );
+  }
+);
 
 function RunsBar({ runs }) {
   const speeds = {

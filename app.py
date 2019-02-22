@@ -8,6 +8,7 @@ import tornado.websocket
 import wsaccel
 from tornado.options import define, options
 from django.core.wsgi import get_wsgi_application
+from django.db.models import Sum
 
 import ujson as json
 
@@ -62,7 +63,19 @@ class SubmissionHandler(tornado.web.RequestHandler):
                 )
             )
         Run.objects.bulk_create(bulk)
-        self.write({"submission": str(submission.uuid)})
+
+        qs = Run.objects.filter(submission=submission)
+        self.write(
+            {
+                "submission": {
+                    "uuid": str(submission.uuid),
+                    "runs": {
+                        "count": qs.count(),
+                        "total_iterations": qs.aggregate(sum=Sum("iterations"))["sum"],
+                    },
+                }
+            }
+        )
 
 
 class XHRHandler(tornado.web.RequestHandler):
