@@ -21,15 +21,13 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
-INSTALLED_APPS = [
-    'orm.main',
-]
+INSTALLED_APPS = ["orm.main"]
 
 
-ROOT_URLCONF = 'orm.urls'
+ROOT_URLCONF = "orm.urls"
 
 
-WSGI_APPLICATION = 'orm.wsgi.application'
+WSGI_APPLICATION = "orm.wsgi.application"
 
 
 # Database
@@ -47,12 +45,16 @@ DATABASES = {
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
 USE_L10N = True
 
 USE_TZ = True
+
+
+GEOIP_PATH = os.path.join(BASE_DIR, "GeoLite2-City.mmdb")
+assert os.path.isfile(GEOIP_PATH), GEOIP_PATH
