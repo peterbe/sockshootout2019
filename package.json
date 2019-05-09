@@ -5,10 +5,10 @@
   "dependencies": {
     "bulma": "0.7.4",
     "bulmaswatch": "0.7.2",
-    "node-sass": "4.11.0",
-    "react": "^16.8.2",
-    "react-dom": "^16.8.2",
-    "react-scripts": "2.1.5",
+    "node-sass": "4.12.0",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6",
+    "react-scripts": "3.0.1",
     "recharts": "1.5.0",
     "sockette": "2.0.5"
   },
