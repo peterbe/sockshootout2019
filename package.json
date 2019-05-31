@@ -21,6 +21,9 @@
   "eslintConfig": {
     "extends": "react-app"
   },
+  "resolutions": {
+    "fstream": ">=1.0.12"
+  },
   "proxy": "http://localhost:8888",
   "browserslist": [
     "> 2%",
